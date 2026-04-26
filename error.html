@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page Not Found | Assam Converter</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --ring: rgba(37, 99, 235, 0.2);
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, #e9f1ff, transparent 35%),
+        radial-gradient(circle at 90% 90%, #e9f1ff, transparent 40%),
+        var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .card {
+      width: min(760px, 100%);
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
+      padding: clamp(24px, 5vw, 42px);
+      border: 1px solid #e2e8f0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 1.02rem;
+    }
+
+    .error-code {
+      font-size: 0.95rem;
+      color: #b91c1c;
+      font-weight: 700;
+      margin: 18px 0 8px;
+      letter-spacing: 0.03em;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: 0.2s ease;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus-visible {
+      background: var(--primary-hover);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+
+    .btn-secondary:hover,
+    .btn-secondary:focus-visible {
+      background: #e2e8f0;
+      box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.25);
+    }
+
+    .help {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 0.95rem;
+      color: #64748b;
+    }
+
+    .help a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .help a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .actions { flex-direction: column; }
+      .btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-labelledby="error-title">
+    <div class="badge">⚠ Something went wrong</div>
+    <div class="error-code">ERROR 404</div>
+    <h1 id="error-title">This page is not available right now</h1>
+    <p>
+      The page you are trying to open may have been moved, deleted, or the URL might be incorrect.
+      You can return to the Assam Converter homepage and continue using tools like PDF unlock,
+      text conversion, and utility converters.
+    </p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="/">Go to Homepage</a>
+      <button class="btn btn-secondary" onclick="history.back()">Go Back</button>
+    </div>
+
+    <div class="help">
+      If you believe this is a technical issue, please report it from the contact page.
+      <a href="/contact">Contact Support</a>
+    </div>
+  </main>
+</body>
+</html>
