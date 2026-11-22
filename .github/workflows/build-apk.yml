@@ -26,11 +26,12 @@ jobs:
           GEOCAM_SECRET: ${{ secrets.GEOCAM_SECRET }}
         run: |
           if [ -z "$GEOCAM_SECRET" ]; then
-            echo "::error::Add the secret GEOCAM_SECRET: repo Settings → Secrets and variables → Actions → New repository secret"
-            exit 1
+            echo "::warning::GEOCAM_SECRET is missing — building a TEST app only (no API key, not signed for release)."
+            echo "TEST_ONLY=1" >> "$GITHUB_ENV"
           fi
 
       - name: Unlock signing key and API key
+        if: env.TEST_ONLY != '1'
         env:
           GEOCAM_SECRET: ${{ secrets.GEOCAM_SECRET }}
           NEW_API_KEY: ${{ secrets.GEOCAM_API_KEY }}
@@ -58,13 +59,22 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Build a test app (code check only)
+        if: env.TEST_ONLY == '1'
+        run: |
+          gradle :app:assembleDebug --no-daemon --stacktrace
+          echo "::error::Code builds fine. Now add the GEOCAM_SECRET secret to get the real, signed APK."
+          exit 1
+
       - name: Build the APK
+        if: env.TEST_ONLY != '1'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.GEOCAM_SECRET }}
           KEY_ALIAS: geotag
         run: gradle :app:assembleRelease --no-daemon --stacktrace
 
       - name: Check the signature
+        if: env.TEST_ONLY != '1'
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
@@ -73,11 +83,13 @@ jobs:
           sha256sum "GeoTagCamera-${APP_VERSION_NAME}.apk"
 
       - uses: actions/upload-artifact@v4
+        if: env.TEST_ONLY != '1'
         with:
           name: GeoTagCamera-${{ env.APP_VERSION_NAME }}
           path: GeoTagCamera-${{ env.APP_VERSION_NAME }}.apk
 
       - name: Publish to Releases
+        if: env.TEST_ONLY != '1'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: geotag-v${{ env.APP_VERSION_NAME }}-build${{ github.run_number }}
