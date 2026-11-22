@@ -15,7 +15,7 @@ android {
         versionCode env('APP_VERSION_CODE', '1').toInteger()
         versionName env('APP_VERSION_NAME', '1.0.0')
         buildConfigField 'String', 'API_KEY', q(env('GEOCAM_API_KEY', ''))
-        buildConfigField 'String', 'BASE_URL', q(env('GEOCAM_BASE_URL', 'https://www.assamconverter.com'))
+        buildConfigField 'String', 'BASE_URL', q(env('GEOCAM_BASE_URL', 'https://assamconverter.com'))
     }
 
     buildFeatures { buildConfig true }

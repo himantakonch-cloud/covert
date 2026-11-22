@@ -212,7 +212,12 @@ public class AppBridge {
         a.runOnUiThread(new Runnable() { public void run() { Toast.makeText(a, msg, Toast.LENGTH_SHORT).show(); }});
     }
 
-    /** Used by the offline page's "Try again" button. */
+    /** Used by the error page's buttons. */
     @JavascriptInterface
     public void reload() { a.reload(); }
+
+    @JavascriptInterface
+    public void openSite() {
+        a.runOnUiThread(new Runnable() { public void run() { a.openSite(); }});
+    }
 }

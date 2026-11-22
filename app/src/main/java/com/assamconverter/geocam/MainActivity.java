@@ -140,23 +140,63 @@ public class MainActivity extends Activity {
             CookieManager.getInstance().flush();
         }
         @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
-            if (r.isForMainFrame()) offline();
+            if (r.isForMainFrame()) offline("Error " + e.getErrorCode() + ": " + e.getDescription());
         }
         @SuppressWarnings("deprecation")
         @Override public void onReceivedError(WebView v, int code, String d, String url) {
-            if (Build.VERSION.SDK_INT < 23) offline();
+            if (Build.VERSION.SDK_INT < 23) offline("Error " + code + ": " + d);
+        }
+        @Override public void onReceivedHttpError(WebView v, WebResourceRequest r, android.webkit.WebResourceResponse resp) {
+            if (r.isForMainFrame() && resp.getStatusCode() >= 500) showError("The website is not answering", "assamconverter.com returned an error. Please try again in a minute.", "HTTP " + resp.getStatusCode() + " · " + r.getUrl());
+        }
+        @Override public void onReceivedSslError(WebView v, android.webkit.SslErrorHandler h, android.net.http.SslError e) {
+            h.cancel();   // never continue on a bad certificate
+            String url = e.getUrl() == null ? "" : e.getUrl();
+            // the www. address has no valid certificate? try the address without www once
+            if (!triedBare && url.startsWith("https://www.")) {
+                triedBare = true;
+                final String bare = url.replaceFirst("https://www\\.", "https://");
+                web.post(new Runnable() { public void run() { web.loadUrl(bare); }});
+                return;
+            }
+            showError("Secure connection failed", "The phone could not verify the website's security certificate. Check the phone's date and time, then try again.", "SSL error " + e.getPrimaryError() + " · " + url);
         }
     }
 
-    void offline() {
-        showingOffline = true;
-        currentHost = "";
-        web.loadUrl("file:///android_asset/offline.html");
+    boolean triedBare = false;
+
+    void offline(String detail) {
+        showError("No internet connection", "GeoTag Camera needs internet the first time. Turn on mobile data or Wi-Fi and try again.", detail);
     }
+
+    /** Our own error page instead of a blank white screen. */
+    void showError(final String title, final String text, final String detail) {
+        runOnUiThread(new Runnable() { public void run() {
+            showingOffline = true;
+            currentHost = "";
+            String html;
+            try {
+                java.io.InputStream in = getAssets().open("offline.html");
+                java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[4096]; int n;
+                while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
+                in.close();
+                html = b.toString("UTF-8");
+            } catch (Exception e) { html = "<h1>__TITLE__</h1><p>__TEXT__</p><small>__DETAIL__</small>"; }
+            html = html.replace("__TITLE__", esc(title)).replace("__TEXT__", esc(text)).replace("__DETAIL__", esc(detail == null ? "" : detail));
+            web.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
+            bar.setVisibility(View.GONE);
+        }});
+    }
+
+    static String esc(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); }
+
+    void openSite() { openOutside(Uri.parse(BuildConfig.BASE_URL + "/geocam/")); }
 
     void reload() {
         runOnUiThread(new Runnable() { public void run() {
             showingOffline = false;
+            triedBare = false;
             web.loadUrl(BuildConfig.BASE_URL + "/geocam/?source=apk");
         }});
     }
