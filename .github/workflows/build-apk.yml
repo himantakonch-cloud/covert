@@ -1,0 +1,89 @@
+# Builds the signed GeoTag Camera APK on GitHub's computers (free) every time this branch changes,
+# or when you press "Run workflow" in the Actions tab. The APK appears under Releases.
+name: Build GeoTag Camera APK
+
+on:
+  push:
+    branches: [geotag-app]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: geotag-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the GEOCAM_SECRET secret
+        env:
+          GEOCAM_SECRET: ${{ secrets.GEOCAM_SECRET }}
+        run: |
+          if [ -z "$GEOCAM_SECRET" ]; then
+            echo "::error::Add the secret GEOCAM_SECRET: repo Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+
+      - name: Unlock signing key and API key
+        env:
+          GEOCAM_SECRET: ${{ secrets.GEOCAM_SECRET }}
+          NEW_API_KEY: ${{ secrets.GEOCAM_API_KEY }}
+        run: |
+          set -e
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in secrets/release.jks.enc -out "$RUNNER_TEMP/release.jks" -pass env:GEOCAM_SECRET
+          # A GEOCAM_API_KEY secret (made in Admin → GeoTag Camera → App & API keys) replaces the built-in key
+          if [ -n "$NEW_API_KEY" ]; then KEY="$NEW_API_KEY"; else
+            KEY=$(openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in secrets/apikey.enc -pass env:GEOCAM_SECRET)
+          fi
+          echo "::add-mask::$KEY"
+          {
+            echo "GEOCAM_API_KEY=$KEY"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+            echo "APP_VERSION_NAME=$(tr -d ' \r\n' < version.txt)"
+            echo "APP_VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build the APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.GEOCAM_SECRET }}
+          KEY_ALIAS: geotag
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Check the signature
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | head -5
+          cp "$APK" "GeoTagCamera-${APP_VERSION_NAME}.apk"
+          sha256sum "GeoTagCamera-${APP_VERSION_NAME}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GeoTagCamera-${{ env.APP_VERSION_NAME }}
+          path: GeoTagCamera-${{ env.APP_VERSION_NAME }}.apk
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: geotag-v${{ env.APP_VERSION_NAME }}-build${{ github.run_number }}
+          name: GeoTag Camera ${{ env.APP_VERSION_NAME }} (build ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          body: |
+            GeoTag Camera APK — version ${{ env.APP_VERSION_NAME }}, build ${{ env.APP_VERSION_CODE }}.
+            Upload it in Admin → GeoTag Camera → APK so users can download it from assamconverter.com/geocam/install.php
+          files: GeoTagCamera-${{ env.APP_VERSION_NAME }}.apk

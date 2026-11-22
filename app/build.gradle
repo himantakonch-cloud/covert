@@ -1,0 +1,57 @@
+plugins { id 'com.android.application' }
+
+// Values come from the GitHub build (see .github/workflows/build-apk.yml). Nothing secret is stored in the code.
+def env = { String k, String d -> def v = System.getenv(k); (v == null || v.isEmpty()) ? d : v }
+def q = { String s -> '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+
+android {
+    namespace 'com.assamconverter.geocam'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.assamconverter.geocam'
+        minSdk 21                     // Android 5.0 and newer
+        targetSdk 34
+        versionCode env('APP_VERSION_CODE', '1').toInteger()
+        versionName env('APP_VERSION_NAME', '1.0.0')
+        buildConfigField 'String', 'API_KEY', q(env('GEOCAM_API_KEY', ''))
+        buildConfigField 'String', 'BASE_URL', q(env('GEOCAM_BASE_URL', 'https://www.assamconverter.com'))
+    }
+
+    buildFeatures { buildConfig true }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('KEYSTORE_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv('KEYSTORE_FILE')) signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}
