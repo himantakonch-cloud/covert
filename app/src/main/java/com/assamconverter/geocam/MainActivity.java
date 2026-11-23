@@ -104,10 +104,24 @@ public class MainActivity extends Activity {
         });
 
         bridge.cleanOldFiles();
-        String start = BuildConfig.BASE_URL + "/geocam/?source=apk";
+        // new app version → forget pages stored by older versions
+        android.content.SharedPreferences pr = getSharedPreferences("app", MODE_PRIVATE);
+        if (pr.getInt("cacheCleared", 0) != BuildConfig.VERSION_CODE) {
+            web.clearCache(true);
+            pr.edit().putInt("cacheCleared", BuildConfig.VERSION_CODE).apply();
+        }
+        String start = START();
         Intent in = getIntent();
-        if (in != null && in.getData() != null && isOurs(in.getData())) start = in.getData().toString();
-        if (saved != null) web.restoreState(saved); else web.loadUrl(start);
+        if (in != null && in.getData() != null && isOurs(in.getData()) && !isInstallPage(in.getData())) start = in.getData().toString();
+        web.loadUrl(start);   // always open fresh on the camera
+    }
+
+    static String START() { return BuildConfig.BASE_URL + "/geocam/?source=apk"; }
+
+    /** The website's install / download page is for browsers — inside the app we always show the camera instead. */
+    static boolean isInstallPage(Uri u) {
+        String p = u.getPath() == null ? "" : u.getPath();
+        return p.equals("/geocam/install.php") || p.equals("/geocam/install");
     }
 
     int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
@@ -126,12 +140,18 @@ public class MainActivity extends Activity {
         @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return handle(Uri.parse(url)); }
 
         boolean handle(Uri u) {
+            if (isOurs(u) && isInstallPage(u)) { web.loadUrl(START()); return true; }   // install page → camera instead
             if (isOurs(u)) return false;                     // our website: stay in the app
             openOutside(u);                                  // Google Maps, WhatsApp, other sites: open outside
             return true;
         }
         @Override public void onPageStarted(WebView v, String url, android.graphics.Bitmap f) {
             Uri u = Uri.parse(url);
+            if (isOurs(u) && isInstallPage(u)) {   // e.g. a redirect to install.php
+                v.stopLoading();
+                v.post(new Runnable() { public void run() { web.loadUrl(START()); }});
+                return;
+            }
             currentHost = isOurs(u) ? host : (u.getHost() == null ? "" : u.getHost());
             bar.setVisibility(View.VISIBLE);
         }
@@ -197,7 +217,7 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() { public void run() {
             showingOffline = false;
             triedBare = false;
-            web.loadUrl(BuildConfig.BASE_URL + "/geocam/?source=apk");
+            web.loadUrl(START());
         }});
     }
 
@@ -323,11 +343,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (intent != null && intent.getData() != null && isOurs(intent.getData())) web.loadUrl(intent.getData().toString());
+        if (intent != null && intent.getData() != null && isOurs(intent.getData()) && !isInstallPage(intent.getData())) web.loadUrl(intent.getData().toString());
     }
 
-    @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
-    @Override protected void onResume() { super.onResume(); web.onResume(); }
+    @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); }
+    @Override protected void onResume() {
+        super.onResume();
+        web.onResume();
+        // came back and the install page is showing? go to the camera
+        String cur = web.getUrl();
+        if (!showingOffline && cur != null && isOurs(Uri.parse(cur)) && isInstallPage(Uri.parse(cur))) web.loadUrl(START());
+    }
     @Override protected void onPause() { web.onPause(); CookieManager.getInstance().flush(); super.onPause(); }
     @Override protected void onDestroy() { if (web != null) { web.destroy(); } super.onDestroy(); }
 }
