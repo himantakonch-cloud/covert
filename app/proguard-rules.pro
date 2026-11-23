@@ -1,5 +1,3 @@
-# Keep the methods the web page calls (window.GeoTagApp.*)
--keepclassmembers class com.assamconverter.geocam.AppBridge {
-    @android.webkit.JavascriptInterface <methods>;
-}
--keepattributes JavascriptInterface
+# CameraX and AndroidX ship their own rules. Keep our model classes readable in crash logs.
+-keep class com.assamconverter.geocam.** { *; }
+-dontwarn org.slf4j.**
