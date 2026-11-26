@@ -90,9 +90,6 @@ public class SettingsActivity extends AppCompatActivity {
         MaterialButton log = Ui.button(this, "Entry log", false);
         log.setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
         app.addView(log);
-        MaterialButton team = Ui.button(this, "About & Team", false);
-        team.setOnClickListener(v -> startActivity(new Intent(this, AboutActivity.class)));
-        app.addView(team);
         MaterialButton web = Ui.button(this, "Open assamconverter.com", false);
         web.setOnClickListener(v -> MainActivity.open(this, BuildConfig.BASE_URL + "/"));
         app.addView(web);
